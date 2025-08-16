@@ -1,0 +1,62 @@
+[
+  {
+    "id": "policy_sick_leave",
+    "title": "Chính sách nghỉ ốm",
+    "description": "Nhân viên được hưởng 10 ngày nghỉ ốm có lương mỗi năm. Giấy chứng nhận y tế bắt buộc cho những trường hợp vắng mặt từ 3 ngày liên tiếp trở lên. Ngày nghỉ ốm không được chuyển sang năm sau.",
+    "color": "green"
+  },
+  {
+    "id": "policy_remote_work",
+    "title": "Chính sách làm việc từ xa",
+    "description": "Nhân viên có thể làm việc từ xa tối đa 3 ngày mỗi tuần với sự chấp thuận của quản lý. Ngày làm việc từ xa phải được lên lịch trước. Tất cả công việc từ xa yêu cầu kết nối internet ổn định và không gian làm việc phù hợp.",
+    "color": "purple"
+  },
+  {
+    "id": "policy_overtime",
+    "title": "Chính sách làm thêm giờ",
+    "description": "Làm thêm giờ phải được phê duyệt trước bởi ban quản lý. Làm thêm giờ được trả lương 1.5 lần mức lương thường. Tối đa 10 giờ làm thêm mỗi tuần được phép.",
+    "color": "orange"
+  },
+  {
+    "id": "policy_dress_code",
+    "title": "Quy định trang phục",
+    "description": "Trang phục công sở lịch sự bắt buộc tại văn phòng. Quần jean được phép vào thứ Sáu. Không được mang dép xỏ ngón, quần short hoặc trang phục hở hang. Khuyến khích mặc đồ có logo công ty.",
+    "color": "indigo"
+  },
+  {
+    "id": "policy_expenses",
+    "title": "Chính sách hoàn trả chi phí",
+    "description": "Chi phí kinh doanh phải được nộp trong vòng 30 ngày kể từ ngày mua. Hóa đơn bắt buộc cho tất cả chi phí trên $25. Chi phí đi lại yêu cầu phê duyệt trước cho số tiền trên $500.",
+    "color": "pink"
+  },
+  {
+    "id": "policy_holidays",
+    "title": "Ngày lễ công cộng",
+    "description": "Công ty tuân thủ 10 ngày lễ công cộng mỗi năm. Nhân viên nhận lương ngày lễ khi làm việc vào ngày lễ. Lịch ngày lễ được công bố hàng năm vào tháng 12.",
+    "color": "teal"
+  },
+  {
+    "id": "policy_attendance",
+    "title": "Chính sách chấm công",
+    "description": "Giờ làm việc thường xuyên từ 9:00 sáng đến 5:00 chiều với giờ nghỉ trưa 1 tiếng. Đi muộn phải báo cáo với người giám sát. Đi muộn quá nhiều có thể dẫn đến hành động kỷ luật.",
+    "color": "yellow"
+  },
+  {
+    "id": "policy_benefits",
+    "title": "Phúc lợi nhân viên",
+    "description": "Nhân viên toàn thời gian được hưởng bảo hiểm y tế, bảo hiểm nha khoa và đóng góp 401(k) tối đa 6%. Phúc lợi bắt đầu từ ngày đầu tiên của tháng sau 30 ngày làm việc.",
+    "color": "red"
+  },
+  {
+    "id": "policy_termination",
+    "title": "Chính sách nghỉ việc",
+    "description": "Báo trước 2 tuần bắt buộc cho việc từ chức tự nguyện. Lương cuối cùng bao gồm ngày nghỉ phép chưa sử dụng. Phỏng vấn nghỉ việc bắt buộc cho tất cả nhân viên rời đi.",
+    "color": "gray"
+  },
+  {
+    "id": "policy_1755355294464_3ilnwasmz",
+    "title": "Ngân sách đào tạo",
+    "description": "Công ty cung cấp ngân sách 20 triệu VND mỗi năm cho mỗi nhân viên để tham gia các khóa học, hội thảo, hoặc các chương trình chứng chỉ chuyên môn.\n\n",
+    "color": "purple"
+  }
+]

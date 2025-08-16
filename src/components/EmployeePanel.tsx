@@ -1,0 +1,179 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
+interface Employee {
+  name: string;
+  position: string;
+  department: string;
+  remainingLeaveDays: number;
+  totalLeaveDays: number;
+  hireDate: string;
+  employeeId: string;
+}
+
+export default function EmployeePanel() {
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchEmployee();
+  }, []);
+
+  const fetchEmployee = async () => {
+    try {
+      const response = await fetch("/api/demo/employee");
+      if (response.ok) {
+        const data = await response.json();
+        setEmployee(data.employee);
+      }
+    } catch (error) {
+      console.error("Failed to fetch employee:", error);
+    }
+  };
+
+  const randomizeEmployee = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/demo/seed", { method: "POST" });
+      if (response.ok) {
+        const data = await response.json();
+        setEmployee(data.employee);
+      }
+    } catch (error) {
+      console.error("Failed to randomize employee:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!employee) {
+    return (
+      <div className="p-4">
+        <div className="animate-pulse">
+          <div className="h-4 bg-slate-600 rounded w-3/4 mb-2"></div>
+          <div className="h-4 bg-slate-600 rounded w-1/2 mb-2"></div>
+          <div className="h-4 bg-slate-600 rounded w-2/3"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col p-4 min-h-0">
+      <div className="flex justify-between items-center mb-4 border-b border-slate-600 pb-2 flex-shrink-0">
+        <h3 className="text-lg font-bold text-white">Employee Information</h3>
+        <button
+          onClick={randomizeEmployee}
+          disabled={loading}
+          className="p-2 text-slate-400 hover:text-white hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh Employee"
+        >
+          {loading ? (
+            <svg
+              className="w-4 h-4 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          ) : (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      <div className="flex-1 space-y-3 min-h-0 overflow-y-auto">
+        <div className="text-center pb-3 border-b border-slate-600 flex-shrink-0">
+          {/* Avatar with initials */}
+          <div className="flex justify-center mb-3">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+              <span className="text-white text-xl font-bold">
+                {employee.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          <h4 className="text-2xl font-bold text-blue-400 mb-1">
+            {employee.name}
+          </h4>
+          <p className="text-base font-semibold text-slate-300">
+            {employee.position}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-center py-1">
+            <span className="text-xs font-semibold text-slate-400">
+              Department:
+            </span>
+            <span className="text-xs font-medium text-slate-200">
+              {employee.department}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center py-1">
+            <span className="text-xs font-semibold text-slate-400">
+              Leave Balance:
+            </span>
+            <span className="text-xs font-medium text-slate-200">
+              <span className="text-green-400 font-bold">
+                {employee.remainingLeaveDays}
+              </span>
+              <span className="text-slate-500">
+                {" "}
+                / {employee.totalLeaveDays}
+              </span>
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center py-1">
+            <span className="text-xs font-semibold text-slate-400">
+              Hire Date:
+            </span>
+            <span className="text-xs font-medium text-slate-200">
+              {employee.hireDate}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center py-1">
+            <span className="text-xs font-semibold text-slate-400">
+              Employee ID:
+            </span>
+            <span className="text-xs font-medium text-slate-200 font-mono">
+              {employee.employeeId}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
