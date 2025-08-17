@@ -4,7 +4,10 @@ import {
   SystemMessage,
   AIMessage,
 } from "@langchain/core/messages";
-import { StringOutputParser } from "@langchain/core/output_parsers";
+import {
+  JsonOutputParser,
+  StringOutputParser,
+} from "@langchain/core/output_parsers";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 
 const OPENROUTER_BASE_URL =
@@ -39,16 +42,19 @@ Company Policies:
 User Information:
 {user_info}
 
-RESPONSE GUIDELINES:
-- If the user requests time off, vacation, holiday, or mentions taking days off, respond with a professional and helpful message in Vietnamese that acknowledges their request and provides next steps.
-- For general HR questions, provide helpful information based on company policies.
-- Keep responses concise and helpful. ALWAYS RESPOND IN VIETNAMESE.
-- Use newlines (\\n) to format your response for better readability.
-- Return only the helpful response text, no JSON formatting, no markdown.
-- Your response should be directly displayable in a chat interface.
-- IMPORTANT: Do NOT use markdown syntax like **bold**, *italic*, # headers, or numbered lists with 1. 2. 3.
-- Instead, use plain text with newlines (\\n) to separate sections and create structure.
-- For lists, use simple text with newlines, not markdown formatting.`,
+QUAN TRỌNG: Bạn phải trả lời bằng JSON hợp lệ theo định dạng chính xác này:
+{
+  "response": "câu trả lời hữu ích cho người dùng",
+  "is_need_time_off": true/false,
+  "reasoning": "giải thích ngắn gọn tại sao is_need_time_off là true hoặc false"
+}
+
+HƯỚNG DẪN TRẢ LỜI:
+- Nếu người dùng yêu cầu nghỉ phép, nghỉ lễ, nghỉ mát hoặc đề cập đến việc nghỉ ngày, đặt is_need_time_off thành true.
+- Đối với yêu cầu nghỉ phép, trả lời bằng: "Cảm ơn bạn đã gửi yêu cầu nghỉ phép. Tôi đã ghi lại thông tin của bạn và gửi để phê duyệt. Bạn sẽ nhận được xác nhận từ người giám sát trong vòng 2-3 ngày làm việc. Vui lòng kiểm tra email để cập nhật."
+- Đối với câu hỏi nhân sự chung, đặt is_need_time_off thành false và cung cấp thông tin hữu ích dựa trên chính sách công ty.
+- Giữ câu trả lời ngắn gọn và hữu ích. LUÔN LUÔN TRẢ LỜI BẰNG TIẾNG VIỆT.
+`,
 
   LEAVE_PARSER: `Extract structured leave request information from the user's message. Return only valid JSON matching this schema:
 {
@@ -124,13 +130,18 @@ export async function getChatResponse(
   const prompt = ChatPromptTemplate.fromMessages(messageArray);
   console.log("prompt", prompt);
 
-  const parser = new StringOutputParser();
+  const parser = new JsonOutputParser();
   const chain = prompt.pipe(model).pipe(parser);
 
   const result = await chain.invoke({});
+  const response = result.response;
+  const is_need_time_off = result.is_need_time_off;
+  const reasoning = result.reasoning;
+
+  console.log("result", result);
 
   // Clean up any markdown syntax to ensure plaintext response
-  const cleanResult = result
+  const cleanResult = response
     .replace(/\*\*(.*?)\*\*/g, "$1") // Remove **bold**
     .replace(/\*(.*?)\*/g, "$1") // Remove *italic*
     .replace(/^#+\s+/gm, "") // Remove headers
@@ -139,23 +150,10 @@ export async function getChatResponse(
     .replace(/^\*\s+/gm, "") // Remove asterisk list markers
     .trim();
 
-  // Check if the response indicates a time-off request
-  const isTimeOffRequest =
-    cleanResult.toLowerCase().includes("nghỉ phép") ||
-    cleanResult.toLowerCase().includes("xin nghỉ") ||
-    cleanResult.toLowerCase().includes("nghỉ việc") ||
-    cleanResult.toLowerCase().includes("nghỉ lễ") ||
-    cleanResult.toLowerCase().includes("nghỉ tết") ||
-    cleanResult.toLowerCase().includes("nghỉ mát") ||
-    cleanResult.toLowerCase().includes("nghỉ thai sản") ||
-    cleanResult.toLowerCase().includes("nghỉ ốm");
-
   // Return the plaintext response with time-off detection
   return {
     response: cleanResult,
-    is_need_time_off: isTimeOffRequest,
-    reasoning: isTimeOffRequest
-      ? "User requested time off based on response content"
-      : "No time-off request detected",
+    is_need_time_off: is_need_time_off,
+    reasoning: reasoning,
   };
 }
