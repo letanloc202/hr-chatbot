@@ -1,43 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getChatResponse, SYSTEM_PROMPTS } from "@/lib/langchain";
-import { readJsonFile, writeJsonFile, Message } from "@/lib/data";
 import { z } from "zod";
 
 const chatRequestSchema = z.object({
   message: z.string().min(1),
   model: z.string().min(1),
-  userInfo: z.string().optional(),
+  history_chat: z.array(
+    z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string(),
+    })
+  ),
+  user_info: z.string(),
+  policies: z.array(
+    z.object({
+      title: z.string(),
+      description: z.string(),
+    })
+  ),
 });
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, model, userInfo } = chatRequestSchema.parse(body);
+    const { message, model, history_chat, user_info, policies } =
+      chatRequestSchema.parse(body);
 
-    // Read existing messages
-    const messages = await readJsonFile<Message[]>("messages.json");
-
-    // Generate unique IDs using timestamp and random string
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substr(2, 9);
-    const baseId = `msg_${timestamp}_${randomStr}`;
-
-    // Add user message
-    const userMessage: Message = {
-      id: `${baseId}_user`,
-      role: "user",
-      content: message,
-      timestamp: new Date().toISOString(),
-    };
-
-    messages.push(userMessage);
-
-    // Get LLM response with user info
+    // Get LLM response with all the context
     const llmResponse = await getChatResponse(
       model,
-      [userMessage],
+      history_chat,
       SYSTEM_PROMPTS.HR_ASSISTANT,
-      userInfo
+      user_info,
+      policies,
+      message
     );
 
     // Extract response and check if time off is needed
@@ -51,10 +47,20 @@ export async function POST(request: NextRequest) {
       response = llmResponse.response || JSON.stringify(llmResponse);
     }
 
+    // Ensure newlines are preserved for proper display
+    response = response.replace(/\\n/g, "\n");
+
     const isNeedTimeOff = llmResponse.is_need_time_off || false;
 
     // If time off is needed, process leave request
     if (isNeedTimeOff) {
+      // TODO: Implement leave processing when API endpoints are ready
+      console.log(
+        "Time off request detected, but leave processing not yet implemented"
+      );
+
+      // Commented out until leave API endpoints are implemented
+      /*
       try {
         // Parse the leave request
         const parseResponse = await fetch(
@@ -91,43 +97,14 @@ export async function POST(request: NextRequest) {
 
           if (createResponse.ok) {
             // Add note about leave case creation
-            const updatedResponse =
-              response +
-              "\n\nI've created a leave case for you. You'll receive a confirmation shortly.";
-
-            // Add assistant message
-            const assistantMessage: Message = {
-              id: `${baseId}_assistant`,
-              role: "assistant",
-              content: updatedResponse,
-              timestamp: new Date().toISOString(),
-            };
-
-            messages.push(assistantMessage);
+            response = response;
           }
         }
       } catch (error) {
         console.error("Failed to process leave request:", error);
       }
-    } else {
-      // Add assistant message for regular response
-      const assistantMessage: Message = {
-        id: `${baseId}_assistant`,
-        role: "assistant",
-        content: response,
-        timestamp: new Date().toISOString(),
-      };
-
-      messages.push(assistantMessage);
+      */
     }
-
-    // Keep only last 50 messages
-    if (messages.length > 50) {
-      messages.splice(0, messages.length - 50);
-    }
-
-    // Save messages
-    await writeJsonFile("messages.json", messages);
 
     return NextResponse.json({
       response,

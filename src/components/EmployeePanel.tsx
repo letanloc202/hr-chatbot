@@ -12,39 +12,101 @@ interface Employee {
   employeeId: string;
 }
 
-export default function EmployeePanel() {
+interface EmployeePanelProps {
+  onEmployeeRefresh?: () => void;
+  onEmployeeChange?: (employee: Employee) => void;
+}
+
+// Sample employee data for demonstration
+const sampleEmployees: Employee[] = [
+  {
+    name: "Vũ Thị Hạnh",
+    position: "Điều phối nhân sự",
+    department: "Sản phẩm",
+    remainingLeaveDays: 13,
+    totalLeaveDays: 20,
+    hireDate: "2020-01-21",
+    employeeId: "EMP493",
+  },
+  {
+    name: "Nguyễn Văn An",
+    position: "Nhân viên phát triển",
+    department: "Công nghệ",
+    remainingLeaveDays: 8,
+    totalLeaveDays: 20,
+    hireDate: "2021-03-15",
+    employeeId: "EMP124",
+  },
+  {
+    name: "Trần Thị Bình",
+    position: "Quản lý dự án",
+    department: "Sản phẩm",
+    remainingLeaveDays: 15,
+    totalLeaveDays: 20,
+    hireDate: "2019-08-10",
+    employeeId: "EMP789",
+  },
+  {
+    name: "Lê Văn Cường",
+    position: "Nhân viên marketing",
+    department: "Truyền thông",
+    remainingLeaveDays: 12,
+    totalLeaveDays: 20,
+    hireDate: "2022-01-05",
+    employeeId: "EMP456",
+  },
+  {
+    name: "Phạm Thị Dung",
+    position: "Kế toán trưởng",
+    department: "Tài chính",
+    remainingLeaveDays: 6,
+    totalLeaveDays: 20,
+    hireDate: "2018-11-20",
+    employeeId: "EMP321",
+  },
+];
+
+export default function EmployeePanel({
+  onEmployeeRefresh,
+  onEmployeeChange,
+}: EmployeePanelProps) {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchEmployee();
-  }, []);
+    // Set initial employee from sample data
+    const initialEmployee = sampleEmployees[0];
+    setEmployee(initialEmployee);
 
-  const fetchEmployee = async () => {
-    try {
-      const response = await fetch("/api/demo/employee");
-      if (response.ok) {
-        const data = await response.json();
-        setEmployee(data.employee);
-      }
-    } catch (error) {
-      console.error("Failed to fetch employee:", error);
+    // Notify parent component about the initial employee
+    if (onEmployeeChange) {
+      onEmployeeChange(initialEmployee);
     }
-  };
+  }, [onEmployeeChange]);
 
-  const randomizeEmployee = async () => {
+  const randomizeEmployee = () => {
     setLoading(true);
-    try {
-      const response = await fetch("/api/demo/seed", { method: "POST" });
-      if (response.ok) {
-        const data = await response.json();
-        setEmployee(data.employee);
+
+    // Simulate loading delay
+    setTimeout(() => {
+      // Pick a random employee from the sample data
+      const randomIndex = Math.floor(Math.random() * sampleEmployees.length);
+      const newEmployee = sampleEmployees[randomIndex];
+
+      setEmployee(newEmployee);
+
+      // Notify parent component about the new employee
+      if (onEmployeeChange) {
+        onEmployeeChange(newEmployee);
       }
-    } catch (error) {
-      console.error("Failed to randomize employee:", error);
-    } finally {
+
+      // Call the callback to refresh chat messages
+      if (onEmployeeRefresh) {
+        onEmployeeRefresh();
+      }
+
       setLoading(false);
-    }
+    }, 500);
   };
 
   if (!employee) {
@@ -137,21 +199,6 @@ export default function EmployeePanel() {
             </span>
             <span className="text-xs font-medium text-slate-200">
               {employee.department}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center py-1">
-            <span className="text-xs font-semibold text-slate-400">
-              Leave Balance:
-            </span>
-            <span className="text-xs font-medium text-slate-200">
-              <span className="text-green-400 font-bold">
-                {employee.remainingLeaveDays}
-              </span>
-              <span className="text-slate-500">
-                {" "}
-                / {employee.totalLeaveDays}
-              </span>
             </span>
           </div>
 

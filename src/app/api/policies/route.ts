@@ -1,92 +1,72 @@
-import { NextRequest, NextResponse } from "next/server";
-import { readJsonFile, writeJsonFile } from "@/lib/data";
-import { z } from "zod";
+import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
-interface Policy {
-  id: string;
-  title: string;
-  description: string;
-  color: string;
-}
-
-const policySchema = z.object({
-  id: z.string().optional(),
-  title: z.string().min(1),
-  description: z.string().min(1),
-  color: z.string().min(1),
-});
-
-// GET - Fetch all policies
 export async function GET() {
   try {
-    const policies = await readJsonFile<Policy[]>("policies.json");
-    return NextResponse.json({ policies });
-  } catch {
-    // If file doesn't exist, return empty array
-    return NextResponse.json({ policies: [] });
-  }
-}
+    // Read the policies.json file from the data directory
+    const dataPath = path.join(process.cwd(), "data", "policies.json");
+    const policiesData = fs.readFileSync(dataPath, "utf8");
+    const policies = JSON.parse(policiesData);
 
-// POST - Create new policy
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const policyData = policySchema.parse(body);
-
-    const policies = await readJsonFile<Policy[]>("policies.json").catch(
-      () => []
-    );
-
-    const newPolicy: Policy = {
-      id: `policy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      title: policyData.title,
-      description: policyData.description,
-      color: policyData.color,
-    };
-
-    policies.push(newPolicy);
-    await writeJsonFile("policies.json", policies);
-
-    return NextResponse.json({ policy: newPolicy });
+    return NextResponse.json(policies);
   } catch (error) {
-    console.error("Failed to create policy:", error);
+    console.error("Error reading policies:", error);
     return NextResponse.json(
-      { error: "Failed to create policy" },
+      { error: "Failed to load policies" },
       { status: 500 }
     );
   }
 }
 
-// PUT - Update existing policy
-export async function PUT(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { id, ...policyData } = policySchema.parse(body);
+    const newPolicy = await request.json();
 
-    if (!id) {
-      return NextResponse.json(
-        { error: "Policy ID is required" },
-        { status: 400 }
-      );
-    }
+    // Read current policies
+    const dataPath = path.join(process.cwd(), "data", "policies.json");
+    const policiesData = fs.readFileSync(dataPath, "utf8");
+    const policies = JSON.parse(policiesData);
 
-    const policies = await readJsonFile<Policy[]>("policies.json");
-    const policyIndex = policies.findIndex((p) => p.id === id);
+    // Add new policy
+    policies.push(newPolicy);
 
-    if (policyIndex === -1) {
+    // Write back to file
+    fs.writeFileSync(dataPath, JSON.stringify(policies, null, 2), "utf8");
+
+    return NextResponse.json(newPolicy);
+  } catch (error) {
+    console.error("Error adding policy:", error);
+    return NextResponse.json(
+      { error: "Failed to add policy" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const updatedPolicy = await request.json();
+
+    // Read current policies
+    const dataPath = path.join(process.cwd(), "data", "policies.json");
+    const policiesData = fs.readFileSync(dataPath, "utf8");
+    const policies = JSON.parse(policiesData);
+
+    // Find and update policy
+    const index = policies.findIndex((p: any) => p.id === updatedPolicy.id);
+    if (index !== -1) {
+      policies[index] = updatedPolicy;
+
+      // Write back to file
+      fs.writeFileSync(dataPath, JSON.stringify(policies, null, 2), "utf8");
+
+      return NextResponse.json(updatedPolicy);
+    } else {
       return NextResponse.json({ error: "Policy not found" }, { status: 404 });
     }
-
-    policies[policyIndex] = {
-      ...policies[policyIndex],
-      ...policyData,
-    };
-
-    await writeJsonFile("policies.json", policies);
-
-    return NextResponse.json({ policy: policies[policyIndex] });
   } catch (error) {
-    console.error("Failed to update policy:", error);
+    console.error("Error updating policy:", error);
     return NextResponse.json(
       { error: "Failed to update policy" },
       { status: 500 }
@@ -94,8 +74,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Delete policy
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -107,18 +86,24 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const policies = await readJsonFile<Policy[]>("policies.json");
-    const filteredPolicies = policies.filter((p) => p.id !== id);
+    // Read current policies
+    const dataPath = path.join(process.cwd(), "data", "policies.json");
+    const policiesData = fs.readFileSync(dataPath, "utf8");
+    const policies = JSON.parse(policiesData);
 
-    if (filteredPolicies.length === policies.length) {
-      return NextResponse.json({ error: "Policy not found" }, { status: 404 });
-    }
+    // Filter out the policy to delete
+    const filteredPolicies = policies.filter((p: any) => p.id !== id);
 
-    await writeJsonFile("policies.json", filteredPolicies);
+    // Write back to file
+    fs.writeFileSync(
+      dataPath,
+      JSON.stringify(filteredPolicies, null, 2),
+      "utf8"
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete policy:", error);
+    console.error("Error deleting policy:", error);
     return NextResponse.json(
       { error: "Failed to delete policy" },
       { status: 500 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import PolicyDialog from "./PolicyDialog";
 
 interface Policy {
@@ -8,6 +8,14 @@ interface Policy {
   title: string;
   description: string;
   color: string;
+}
+
+interface PolicyPanelProps {
+  policies: Policy[];
+  onAddPolicy: (policy: Policy) => void;
+  onEditPolicy: (policy: Policy) => void;
+  onDeletePolicy: (policyId: string) => void;
+  loading?: boolean;
 }
 
 const COLOR_CLASSES = {
@@ -23,30 +31,16 @@ const COLOR_CLASSES = {
   gray: "bg-slate-700 border-l-4 border-slate-400 text-slate-300",
 };
 
-export default function PolicyPanel() {
-  const [policies, setPolicies] = useState<Policy[]>([]);
+export default function PolicyPanel({
+  policies,
+  onAddPolicy,
+  onEditPolicy,
+  onDeletePolicy,
+  loading = false,
+}: PolicyPanelProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null);
   const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchPolicies();
-  }, []);
-
-  const fetchPolicies = async () => {
-    try {
-      const response = await fetch("/api/policies");
-      if (response.ok) {
-        const data = await response.json();
-        setPolicies(data.policies || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch policies:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAddPolicy = () => {
     setDialogMode("add");
@@ -60,52 +54,35 @@ export default function PolicyPanel() {
     setIsDialogOpen(true);
   };
 
-  const handleDeletePolicy = async (policyId: string) => {
+  const handleDeletePolicy = (policyId: string) => {
     if (!confirm("Are you sure you want to delete this policy?")) {
       return;
     }
-
-    try {
-      const response = await fetch(`/api/policies?id=${policyId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        await fetchPolicies();
-      }
-    } catch (error) {
-      console.error("Failed to delete policy:", error);
-    }
+    onDeletePolicy(policyId);
   };
 
-  const handleSavePolicy = async (policy: Policy) => {
-    try {
-      const url = "/api/policies";
-      const method = dialogMode === "add" ? "POST" : "PUT";
-      const body =
-        dialogMode === "add" ? policy : { ...policy, id: editingPolicy?.id };
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (response.ok) {
-        await fetchPolicies();
-      }
-    } catch (error) {
-      console.error("Failed to save policy:", error);
+  const handleSavePolicy = (policy: Policy) => {
+    if (dialogMode === "add") {
+      onAddPolicy(policy);
+    } else {
+      onEditPolicy(policy);
     }
+    setIsDialogOpen(false);
   };
 
   if (loading) {
     return (
       <div className="h-full flex flex-col p-4 min-h-0">
-        <div className="animate-pulse">
-          <div className="h-6 bg-slate-600 rounded w-3/4 mb-4"></div>
-          <div className="h-4 bg-slate-600 rounded w-1/2 mb-2"></div>
-          <div className="h-4 bg-slate-600 rounded w-2/3"></div>
+        <div className="flex justify-between items-center mb-4 border-b border-slate-600 pb-2 flex-shrink-0">
+          <h3 className="text-lg font-bold text-white">Company Policies</h3>
+        </div>
+        <div className="flex-1 min-h-0 flex items-center justify-center">
+          <div className="animate-pulse text-slate-400">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-sm">Đang tải chính sách...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -115,12 +92,14 @@ export default function PolicyPanel() {
     <div className="h-full flex flex-col p-4 min-h-0">
       <div className="flex justify-between items-center mb-4 border-b border-slate-600 pb-2 flex-shrink-0">
         <h3 className="text-lg font-bold text-white">Company Policies</h3>
-        <button
-          onClick={handleAddPolicy}
-          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-        >
-          Add Policy
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleAddPolicy}
+            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          >
+            Add Policy
+          </button>
+        </div>
       </div>
 
       <div className="text-xs text-slate-300 space-y-2 flex-1 min-h-0 overflow-y-auto overflow-x-hidden">

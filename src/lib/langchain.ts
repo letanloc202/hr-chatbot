@@ -1,5 +1,9 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import {
+  HumanMessage,
+  SystemMessage,
+  AIMessage,
+} from "@langchain/core/messages";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 
@@ -27,26 +31,24 @@ export function createChatModel(modelName: string) {
 }
 
 export const SYSTEM_PROMPTS = {
-  HR_ASSISTANT: `Bạn là trợ lý nhân sự cho một công ty demo. Bạn giúp nhân viên với các câu hỏi liên quan đến nhân sự và có thể xử lý yêu cầu nghỉ phép.
+  HR_ASSISTANT: `You are an HR assistant for a demo company. You help employees with HR-related questions and can process time-off requests.
 
-Chính sách công ty:
+Company Policies:
 {policies}
 
-Thông tin người dùng:
+User Information:
 {user_info}
 
-QUAN TRỌNG: Bạn phải trả lời bằng JSON hợp lệ theo định dạng chính xác này:
-{
-  "response": "câu trả lời hữu ích cho người dùng",
-  "is_need_time_off": true/false,
-  "reasoning": "giải thích ngắn gọn tại sao is_need_time_off là true hoặc false"
-}
-
-HƯỚNG DẪN TRẢ LỜI:
-- Nếu người dùng yêu cầu nghỉ phép, nghỉ lễ, nghỉ mát hoặc đề cập đến việc nghỉ ngày, đặt is_need_time_off thành true.
-- Đối với yêu cầu nghỉ phép, trả lời bằng: "Cảm ơn bạn đã gửi yêu cầu nghỉ phép. Tôi đã ghi lại thông tin của bạn và gửi để phê duyệt. Bạn sẽ nhận được xác nhận từ người giám sát trong vòng 2-3 ngày làm việc. Vui lòng kiểm tra email để cập nhật."
-- Đối với câu hỏi nhân sự chung, đặt is_need_time_off thành false và cung cấp thông tin hữu ích dựa trên chính sách công ty.
-- Giữ câu trả lời ngắn gọn và hữu ích. LUÔN LUÔN TRẢ LỜI BẰNG TIẾNG VIỆT.`,
+RESPONSE GUIDELINES:
+- If the user requests time off, vacation, holiday, or mentions taking days off, respond with a professional and helpful message in Vietnamese that acknowledges their request and provides next steps.
+- For general HR questions, provide helpful information based on company policies.
+- Keep responses concise and helpful. ALWAYS RESPOND IN VIETNAMESE.
+- Use newlines (\\n) to format your response for better readability.
+- Return only the helpful response text, no JSON formatting, no markdown.
+- Your response should be directly displayable in a chat interface.
+- IMPORTANT: Do NOT use markdown syntax like **bold**, *italic*, # headers, or numbered lists with 1. 2. 3.
+- Instead, use plain text with newlines (\\n) to separate sections and create structure.
+- For lists, use simple text with newlines, not markdown formatting.`,
 
   LEAVE_PARSER: `Extract structured leave request information from the user's message. Return only valid JSON matching this schema:
 {
@@ -64,31 +66,39 @@ export async function getChatResponse(
   modelName: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
   systemPrompt: string = SYSTEM_PROMPTS.HR_ASSISTANT,
-  userInfo?: string
+  userInfo?: string,
+  policies?: Array<{ title: string; description: string }>,
+  currentUserMessage?: string
 ) {
   const model = createChatModel(modelName);
 
-  // Fetch policies
+  // Use provided policies or fallback to fetching from API
   let policiesText = "No policies available";
-  try {
-    const policiesResponse = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-      }/api/policies`
-    );
-    if (policiesResponse.ok) {
-      const policiesData = await policiesResponse.json();
-      if (policiesData.policies && policiesData.policies.length > 0) {
-        policiesText = policiesData.policies
-          .map(
-            (policy: { title: string; description: string }) =>
-              `- ${policy.title}: ${policy.description}`
-          )
-          .join("\n");
+  if (policies && policies.length > 0) {
+    policiesText = policies
+      .map((policy) => `- ${policy.title}: ${policy.description}`)
+      .join("\n");
+  } else {
+    try {
+      const policiesResponse = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+        }/api/policies`
+      );
+      if (policiesResponse.ok) {
+        const policiesData = await policiesResponse.json();
+        if (policiesData.policies && policiesData.policies.length > 0) {
+          policiesText = policiesData.policies
+            .map(
+              (policy: { title: string; description: string }) =>
+                `- ${policy.title}: ${policy.description}`
+            )
+            .join("\n");
+        }
       }
+    } catch (error) {
+      console.error("Failed to fetch policies:", error);
     }
-  } catch (error) {
-    console.error("Failed to fetch policies:", error);
   }
 
   // Replace placeholders with actual data
@@ -96,40 +106,56 @@ export async function getChatResponse(
     .replace("{policies}", policiesText)
     .replace("{user_info}", userInfo || "No user information available");
 
-  const prompt = ChatPromptTemplate.fromMessages([
+  // Create message array with proper types
+  const messageArray = [
     new SystemMessage(processedSystemPrompt),
     ...messages.map((msg) =>
       msg.role === "user"
         ? new HumanMessage(msg.content)
-        : new HumanMessage(msg.content)
+        : new AIMessage(msg.content)
     ),
-  ]);
+  ];
+
+  // Add current user message if provided
+  if (currentUserMessage) {
+    messageArray.push(new HumanMessage(currentUserMessage));
+  }
+
+  const prompt = ChatPromptTemplate.fromMessages(messageArray);
+  console.log("prompt", prompt);
 
   const parser = new StringOutputParser();
   const chain = prompt.pipe(model).pipe(parser);
 
   const result = await chain.invoke({});
 
-  // Try to parse JSON response
-  try {
-    const jsonResult = JSON.parse(result);
-    // Ensure we have the expected structure
-    if (typeof jsonResult === "object" && jsonResult !== null) {
-      return {
-        response: jsonResult.response || result,
-        is_need_time_off: jsonResult.is_need_time_off || false,
-        reasoning: jsonResult.reasoning || "No reasoning provided",
-      };
-    } else {
-      throw new Error("Invalid JSON structure");
-    }
-  } catch (error) {
-    // If JSON parsing fails, return a fallback response
-    console.error("Failed to parse JSON response:", error);
-    return {
-      response: result,
-      is_need_time_off: false,
-      reasoning: "Could not determine if time off is needed",
-    };
-  }
+  // Clean up any markdown syntax to ensure plaintext response
+  const cleanResult = result
+    .replace(/\*\*(.*?)\*\*/g, "$1") // Remove **bold**
+    .replace(/\*(.*?)\*/g, "$1") // Remove *italic*
+    .replace(/^#+\s+/gm, "") // Remove headers
+    .replace(/^\d+\.\s+/gm, "") // Remove numbered list markers
+    .replace(/^\-\s+/gm, "") // Remove bullet list markers
+    .replace(/^\*\s+/gm, "") // Remove asterisk list markers
+    .trim();
+
+  // Check if the response indicates a time-off request
+  const isTimeOffRequest =
+    cleanResult.toLowerCase().includes("nghỉ phép") ||
+    cleanResult.toLowerCase().includes("xin nghỉ") ||
+    cleanResult.toLowerCase().includes("nghỉ việc") ||
+    cleanResult.toLowerCase().includes("nghỉ lễ") ||
+    cleanResult.toLowerCase().includes("nghỉ tết") ||
+    cleanResult.toLowerCase().includes("nghỉ mát") ||
+    cleanResult.toLowerCase().includes("nghỉ thai sản") ||
+    cleanResult.toLowerCase().includes("nghỉ ốm");
+
+  // Return the plaintext response with time-off detection
+  return {
+    response: cleanResult,
+    is_need_time_off: isTimeOffRequest,
+    reasoning: isTimeOffRequest
+      ? "User requested time off based on response content"
+      : "No time-off request detected",
+  };
 }

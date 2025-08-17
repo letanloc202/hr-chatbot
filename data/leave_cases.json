@@ -9,5 +9,60 @@
     "status": "created",
     "createdAt": "2025-08-16T13:54:39.839Z",
     "employeeId": "EMP401"
+  },
+  {
+    "id": "leave_1755403041177",
+    "startDate": "2023-10-06",
+    "endDate": "2023-10-06",
+    "days": 1,
+    "type": "annual",
+    "note": "Tôi muốn xin nghỉ",
+    "status": "created",
+    "createdAt": "2025-08-17T03:57:21.177Z",
+    "employeeId": "EMP576"
+  },
+  {
+    "id": "leave_1755403131349",
+    "startDate": "2023-10-10",
+    "endDate": "2023-10-10",
+    "days": 1,
+    "type": "annual",
+    "note": "Tôi muốn xin nghỉ",
+    "status": "created",
+    "createdAt": "2025-08-17T03:58:51.349Z",
+    "employeeId": "EMP576"
+  },
+  {
+    "id": "leave_1755403152351",
+    "startDate": "2023-10-16",
+    "endDate": "2023-10-16",
+    "days": 1,
+    "type": "annual",
+    "note": "Tôi muốn xin nghỉ",
+    "status": "created",
+    "createdAt": "2025-08-17T03:59:12.351Z",
+    "employeeId": "EMP576"
+  },
+  {
+    "id": "leave_1755403350303",
+    "startDate": "2023-10-31",
+    "endDate": "2023-10-31",
+    "days": 1,
+    "type": "annual",
+    "note": "Cho tôi xin nghỉ",
+    "status": "created",
+    "createdAt": "2025-08-17T04:02:30.303Z",
+    "employeeId": "EMP576"
+  },
+  {
+    "id": "leave_1755403956537",
+    "startDate": "2023-10-10",
+    "endDate": "2023-10-10",
+    "days": 1,
+    "type": "annual",
+    "note": "Cho tôi xin nghỉ",
+    "status": "created",
+    "createdAt": "2025-08-17T04:12:36.537Z",
+    "employeeId": "EMP576"
   }
 ]

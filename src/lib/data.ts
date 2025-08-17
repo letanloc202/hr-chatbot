@@ -25,13 +25,6 @@ export interface LeaveCase {
   employeeId: string;
 }
 
-export interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-}
-
 export interface PolicyChunk {
   id: string;
   text: string;
